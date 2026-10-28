@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Enter PIN{% endblock %}
+{% block content %}
+<div class="center-stage">
+  <div class="auth-card">
+    <div class="auth-head">
+      <span class="avatar" style="margin:0 auto 10px">{{ staff_member.full_name[0] }}</span>
+      <h1>{{ staff_member.full_name }}</h1>
+      <p>Enter your 4-digit PIN</p>
+    </div>
+
+    {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+
+    <form method="post" id="pin-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="pin" id="pin-value">
+
+      <div class="pin-display">
+        <span class="pin-dot" id="d0"></span><span class="pin-dot" id="d1"></span>
+        <span class="pin-dot" id="d2"></span><span class="pin-dot" id="d3"></span>
+      </div>
+
+      <div class="pin-pad">
+        {% for n in ['1','2','3','4','5','6','7','8','9'] %}
+        <button type="button" class="pin-key" onclick="pinPress('{{ n }}')">{{ n }}</button>
+        {% endfor %}
+        <button type="button" class="pin-key wide" onclick="pinClear()">Clear</button>
+        <button type="button" class="pin-key" onclick="pinPress('0')">0</button>
+        <button type="button" class="pin-key wide" onclick="pinBack()">&#9003;</button>
+      </div>
+    </form>
+
+    <div class="divider"></div>
+    <a class="btn btn-block" href="{{ url_for('auth.pos_login') }}">Not you? Switch staff</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/pin.js') }}"></script>
+{% endblock %}

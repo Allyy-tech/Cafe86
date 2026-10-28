@@ -1,0 +1,17 @@
+# Database (contains real transactions / password hashes once you start using it for real)
+instance/*.db
+private/
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.venv-1/
+venv/
+*.egg-info/
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.DS_Store

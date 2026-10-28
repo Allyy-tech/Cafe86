@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Request could not be processed{% endblock %}
+{% block content %}
+<div class="center-stage">
+  <div class="auth-card" style="text-align:center">
+    <div style="font-size:42px">&#9888;</div>
+    <h1>Request could not be processed</h1>
+    <p class="muted">Your session may have expired. Please go back, refresh the page, and try again.</p>
+    <div style="margin-top:20px">
+      <a class="btn btn-primary btn-block" href="{{ url_for('auth.landing') }}">Back to safety</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

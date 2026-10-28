@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Staff Accounts{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>Account Management</h1>
+  <p>Approve staff sign-up requests and manage account access, credentials, and PINs.</p>
+</div>
+
+{% if errors %}
+<div class="alert alert-error">
+  <strong>Could not create the account:</strong>
+  <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<div class="grid grid-2">
+  <div class="card">
+    <h2>Add Team Account</h2>
+    <form method="post" action="{{ url_for('admin.users_create') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label for="full_name">Full name</label>
+        <input type="text" id="full_name" name="full_name" required maxlength="60">
+      </div>
+      <div class="field">
+        <label for="role">Role</label>
+        <select id="role" name="role" required>
+          <option value="cashier">Staff &mdash; POS access</option>
+          <option value="admin">Admin / Owner &mdash; full access</option>
+        </select>
+      </div>
+      <div class="field" id="username-group">
+        <label for="username">Staff ID</label>
+        <input type="text" id="username" name="username" maxlength="20" pattern="[a-zA-Z0-9_]{3,20}">
+        <div class="hint">Staff use this ID with their PIN to sign in. Use 3&ndash;20 letters, numbers, or underscores.</div>
+      </div>
+      <div class="field" id="email-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" maxlength="254" autocomplete="off">
+        <div class="hint" id="email-hint">Optional for staff (lets them sign in by email); required for admin password recovery.</div>
+      </div>
+      <div class="field" id="password-group" style="display:none">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" maxlength="128" autocomplete="new-password">
+        <div class="hint">8+ characters with at least one letter and one number.</div>
+      </div>
+      <div class="field">
+        <label for="pin">Staff / manager PIN</label>
+        <input type="password" id="pin" name="pin" inputmode="numeric" maxlength="4" pattern="\d{4}" required>
+        <div class="hint">Exactly 4 digits. Obvious patterns like 1234 or 0000 are rejected.</div>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Create Account</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Current Staff</h2>
+    <table>
+      <thead><tr><th>Name / Sign-in</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>
+            <strong>{{ u.full_name }}</strong><br>
+            <span class="small muted mono">{{ u.email if u.role == 'admin' else 'Username: ' ~ u.username }}</span>
+            {% if u.role == 'cashier' and u.email %}<br><span class="small muted">{{ u.email }}</span>{% endif %}
+          </td>
+          <td>
+            {% if u.role == 'admin' %}<span class="pill pill-warn">ADMIN</span>
+            {% else %}<span class="pill pill-neutral">CASHIER</span>{% endif %}
+          </td>
+          <td>
+            {% if u.approval_status == 'pending' %}<span class="pill pill-warn">PENDING APPROVAL</span>
+            {% elif u.is_active %}<span class="pill pill-ok">ACTIVE</span>
+            {% else %}<span class="pill pill-bad">DISABLED</span>{% endif %}
+            {% if u.locked_until %}<br><span class="small muted">locked</span>{% endif %}
+          </td>
+          <td>
+            <div class="row-actions">
+              {% if u.approval_status == 'pending' %}
+              <form method="post" action="{{ url_for('admin.users_approve', user_id=u.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-success" type="submit">Approve</button>
+              </form>
+              {% endif %}
+              <form method="post" action="{{ url_for('admin.users_reset_pin', user_id=u.id) }}" class="inline-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="password" name="new_pin" inputmode="numeric" maxlength="4" pattern="\d{4}"
+                       placeholder="New PIN" style="width:84px" required>
+                <button class="btn btn-sm" type="submit">Reset</button>
+              </form>
+              {% if u.is_active and u.id != current_user.get('user_id') %}
+              <form method="post" action="{{ url_for('admin.users_deactivate', user_id=u.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-danger" type="submit">Disable</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin-users.js') }}"></script>
+{% endblock %}

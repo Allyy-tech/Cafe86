@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+
+<div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px">
+  <div>
+    <h1>Owner Dashboard</h1>
+    <p>Sales performance and system health at a glance.</p>
+  </div>
+  <div class="row-actions">
+    <a class="btn btn-sm {{ 'btn-primary' if period == 'today' }}" href="{{ url_for('admin.dashboard', period='today') }}">Today</a>
+    <a class="btn btn-sm {{ 'btn-primary' if period == 'week' }}" href="{{ url_for('admin.dashboard', period='week') }}">Last 7 days</a>
+    <a class="btn btn-sm {{ 'btn-primary' if period == 'month' }}" href="{{ url_for('admin.dashboard', period='month') }}">This month</a>
+  </div>
+</div>
+
+{% if pending_sync > 0 %}
+<div class="alert alert-warn" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+  <span>
+    <strong>{{ pending_sync }} transaction(s) waiting for off-site backup.</strong>
+    Sales are saved locally and safe &mdash; they'll upload automatically when the internet returns.
+  </span>
+  <button class="btn btn-sm" type="button" id="btn-sync">Back up now</button>
+</div>
+{% endif %}
+
+<div class="grid grid-3">
+  <div class="card stat">
+    <div class="label">Revenue</div>
+    <div class="value money">&#8369;{{ '%.2f'|format(revenue) }}</div>
+    <div class="sub">{{ order_count }} completed order(s)</div>
+  </div>
+  <div class="card stat">
+    <div class="label">Gross Profit</div>
+    <div class="value">&#8369;{{ '%.2f'|format(profit) }}</div>
+    <div class="sub">{{ margin }}% margin</div>
+  </div>
+  <div class="card stat">
+    <div class="label">Voided</div>
+    <div class="value">{{ voided_count }}</div>
+    <div class="sub">{% if voided_count %}Review in the audit log{% else %}None this period{% endif %}</div>
+  </div>
+</div>
+
+<div class="grid grid-2" style="margin-top:18px">
+  <div class="card">
+    <h2>Most Ordered</h2>
+    {% if trending %}
+      {% for t in trending %}
+      <div class="bar-row">
+        <span class="lbl">{{ t.item_name }}</span>
+        <span class="bar-track"><span class="bar-fill" style="width: {{ (t.qty / max_qty * 100) | round(1) }}%"></span></span>
+        <span class="val">{{ t.qty }} sold</span>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">No sales in this period yet.</div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Revenue &mdash; Last 7 Days</h2>
+    <div class="spark">
+      {% for d in days %}
+      <div class="spark-col" title="&#8369;{{ '%.2f'|format(d.revenue) }}">
+        <div class="spark-bar" style="height: {{ (d.revenue / max_rev * 100) | round(1) }}%"></div>
+        <div class="spark-lbl">{{ d.date[5:] }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-2" style="margin-top:18px">
+  <div class="card">
+    <h2>Sales by Category</h2>
+    {% if by_category %}
+      {% for c in by_category %}
+      <div class="bar-row">
+        <span class="lbl">{{ c.category }}</span>
+        <span class="bar-track"><span class="bar-fill" style="width: {{ (c.revenue / max_cat * 100) | round(1) }}%"></span></span>
+        <span class="val">&#8369;{{ '%.0f'|format(c.revenue) }}</span>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">No data yet.</div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Payment Methods</h2>
+    {% if payments %}
+      <table>
+        <thead><tr><th>Method</th><th class="num">Orders</th><th class="num">Amount</th></tr></thead>
+        <tbody>
+          {% for p in payments %}
+          <tr>
+            <td><span class="pill pill-neutral">{% if p.payment_method == 'ewallet' %}E-WALLET{% else %}{{ p.payment_method | upper }}{% endif %}</span></td>
+            <td class="num mono">{{ p.n }}</td>
+            <td class="num mono">&#8369;{{ '%.2f'|format(p.amount) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="empty-state">No data yet.</div>
+    {% endif %}
+  </div>
+
+</div>
+
+<div class="card" style="margin-top:18px">
+  <h2>Recent Transactions</h2>
+  {% if recent_txns %}
+    <table>
+      <thead><tr><th>#</th><th>Time</th><th>Cashier</th><th>Payment</th><th class="num">Total</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for t in recent_txns %}
+        <tr>
+          <td class="mono">#{{ t.id }}</td>
+          <td class="small">{{ t.created_at[5:16] }}</td>
+          <td>{{ t.cashier_name }}</td>
+          <td class="small muted">{% if t.payment_method == 'ewallet' %}GCash{% else %}{{ t.payment_method | title }}{% endif %}</td>
+          <td class="num mono">&#8369;{{ '%.2f'|format(t.total) }}</td>
+          <td>
+            {% if t.is_demo %}<span class="pill pill-warn">DEMO</span>
+            {% elif t.status == 'voided' %}<span class="pill pill-bad">VOIDED</span>
+            {% else %}<span class="pill pill-ok">OK</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div style="margin-top:12px"><a class="btn btn-sm" href="{{ url_for('admin.transactions') }}">View all transactions</a></div>
+  {% else %}
+    <div class="empty-state">No transactions recorded yet.</div>
+  {% endif %}
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/sync.js') }}"></script>
+{% endblock %}

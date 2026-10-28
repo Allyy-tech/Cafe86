@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Cafe86 — Sign in{% endblock %}
+{% block container_class %}login-container{% endblock %}
+{% block content %}
+<div class="center-stage login-stage">
+  <main class="auth-card login-card unified-login-card">
+    <div class="auth-head">
+      <div class="login-brand-mark login-brand-mark-small">&#9749;</div>
+      <p class="login-eyebrow">CAFE86</p>
+      <h1>Welcome back</h1>
+      <p>Sign in to continue to your account.</p>
+    </div>
+
+    {% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>{% endif %}
+
+    <form method="post" action="{{ url_for('auth.landing') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label for="identifier">Username or email</label>
+        <input type="text" id="identifier" name="identifier" required maxlength="254"
+               autocomplete="username" placeholder="Enter your username or email"
+               value="{{ identifier or '' }}" autofocus>
+      </div>
+      <div class="field">
+        <label for="credential">Admin password or staff PIN</label>
+        <input type="password" id="credential" name="credential" required maxlength="128"
+               autocomplete="current-password" placeholder="Enter password or 4-digit PIN">
+        <div class="hint">Admins use their password. Staff use their private PIN.</div>
+        <div class="hint"><a href="{{ url_for('auth.forgot_password') }}">Forgot password?</a> Admin password recovery</div>
+      </div>
+      <div class="field captcha-field">
+        <label for="captcha_answer">Security check: {{ captcha_question }}</label>
+        <input type="text" id="captcha_answer" name="captcha_answer" required
+               inputmode="numeric" pattern="[0-9]{1,2}" maxlength="2"
+               autocomplete="off" placeholder="Type the answer">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block btn-lg">Sign in securely</button>
+    </form>
+
+    {% if needs_admin_setup %}
+    <div class="login-setup-note">
+      No administrator account has been created yet.
+      <a href="{{ url_for('auth.admin_setup') }}">Set up the owner account</a>
+    </div>
+    {% endif %}
+
+    <div class="login-signup">
+      <span>New staff member?</span>
+      <a href="{{ url_for('auth.signup') }}">Request an account</a>
+    </div>
+    <p class="login-security login-security-card"><span aria-hidden="true">&#128274;</span> Staff access is enabled only after administrator approval.</p>
+  </main>
+</div>
+{% endblock %}

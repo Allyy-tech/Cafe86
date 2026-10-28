@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Receipt #{{ txn.id }}{% endblock %}
+{% block content %}
+
+<div class="page-head no-print" style="text-align:center">
+  <h1>Sale Complete</h1>
+  {% if txn.payment_method == 'cash' and txn.change_due > 0 %}
+    <p class="change-banner">Change due &#8369;{{ '%.2f'|format(txn.change_due) }}</p>
+  {% else %}
+    <p>Transaction #{{ txn.id }} recorded successfully.</p>
+  {% endif %}
+</div>
+
+<div class="receipt">
+  <div class="receipt-head">
+    <h2>SECURE CAF&Eacute;</h2>
+    <div class="small">Cabanatuan City</div>
+    <div class="small">VAT Reg TIN 000-000-000-000</div>
+  </div>
+
+  <div class="receipt-line"><span>Receipt No.</span><span>#{{ txn.id }}</span></div>
+  <div class="receipt-line"><span>Date</span><span>{{ txn.created_at }}</span></div>
+  <div class="receipt-line"><span>Cashier</span><span>{{ txn.cashier_name }}</span></div>
+  <div class="receipt-line"><span>Order type</span><span>{{ 'DINE IN' if txn.service_type == 'dine_in' else 'TAKE OUT' }}</span></div>
+  {% if txn.is_demo %}<div class="receipt-line"><strong>DEMO SALE</strong><span>Not a real transaction</span></div>{% endif %}
+  {% if txn.status == 'voided' %}
+  <div class="alert alert-error" style="margin-top:10px">VOIDED &mdash; {{ txn.void_reason }}</div>
+  {% endif %}
+
+  <div style="border-top:1px dashed var(--line);margin:12px 0;padding-top:12px">
+    {% for it in items %}
+    <div class="receipt-line">
+      <span>{{ it.quantity }}x {{ it.item_name }}</span>
+      <span>&#8369;{{ '%.2f'|format(it.line_total) }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="receipt-line"><span>Net of VAT</span><span>&#8369;{{ '%.2f'|format(txn.total - txn.vat_amount) }}</span></div>
+  <div class="receipt-line"><span>VAT 12%</span><span>&#8369;{{ '%.2f'|format(txn.vat_amount) }}</span></div>
+  <div class="receipt-line receipt-total"><span>TOTAL</span><span>&#8369;{{ '%.2f'|format(txn.total) }}</span></div>
+
+  <div style="border-top:1px dashed var(--line);margin-top:12px;padding-top:12px">
+    <div class="receipt-line">
+      <span>Paid by</span>
+      <span>{% if txn.payment_method == 'ewallet' %}GCASH{% else %}{{ txn.payment_method | upper }}{% endif %}</span>
+    </div>
+    {% if txn.payment_method == 'cash' %}
+    <div class="receipt-line"><span>Cash received</span><span>&#8369;{{ '%.2f'|format(txn.amount_tendered) }}</span></div>
+    <div class="receipt-line"><span>Change</span><span>&#8369;{{ '%.2f'|format(txn.change_due) }}</span></div>
+    {% endif %}
+  </div>
+
+  <div class="receipt-foot">
+    {% if txn.sync_status == 'pending' %}
+      Saved locally &middot; queued for off-site backup<br>
+    {% else %}
+      Saved locally &middot; backed up {{ txn.synced_at }}<br>
+    {% endif %}
+    Thank you, please come again!
+  </div>
+</div>
+
+<div class="no-print" style="max-width:370px;margin:18px auto;display:flex;gap:10px">
+  <a class="btn btn-primary" style="flex:1" href="{{ url_for('pos.terminal') }}">New Order</a>
+  <button class="btn" style="flex:1" type="button" id="btn-print">Print</button>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/print.js') }}"></script>
+{% endblock %}

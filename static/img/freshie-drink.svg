@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 190" role="img" aria-label="Illustration of a fresh cold drink">
+  <rect width="320" height="190" rx="18" fill="#e9f3e9"/>
+  <circle cx="252" cy="44" r="25" fill="#cfe7d2"/>
+  <path d="M132 47h65l-7 114h-51z" fill="#fff" stroke="#4c7654" stroke-width="5"/>
+  <path d="M136 97h57l-4 58h-49z" fill="#b7d889"/>
+  <path d="m171 20 31 28" stroke="#4c7654" stroke-linecap="round" stroke-width="7"/>
+  <path d="M151 112c9-17 19-17 28 0-9 15-19 15-28 0z" fill="#f5faf0"/>
+  <circle cx="150" cy="132" r="5" fill="#fff"/>
+  <circle cx="179" cy="143" r="5" fill="#fff"/>
+  <path d="M93 164h145" stroke="#bad5bb" stroke-linecap="round" stroke-width="6"/>
+</svg>

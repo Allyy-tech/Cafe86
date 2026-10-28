@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Admin Sign in{% endblock %}
+{% block content %}
+<div class="center-stage">
+  <div class="auth-card login-card">
+    <div class="auth-head">
+      <div class="login-brand-mark login-brand-mark-small">&#128274;</div>
+      <p class="login-eyebrow">ADMINISTRATOR ACCESS</p>
+      <h1>Back Office</h1>
+      <p>Sign in with your owner or administrator account.</p>
+    </div>
+
+    {% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>{% endif %}
+
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="text" id="email" name="email" required maxlength="254" autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required maxlength="128" autocomplete="current-password">
+        <div class="hint" style="text-align:right;margin-top:6px">
+          <a href="{{ url_for('auth.forgot_password') }}">Forgot password?</a>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block btn-lg">Sign in</button>
+    </form>
+
+    <p class="login-security login-security-card"><span aria-hidden="true">&#128274;</span> Protected access for authorized administrators</p>
+    <div class="divider"></div>
+    <a class="btn btn-block" href="{{ url_for('auth.landing') }}">Back</a>
+  </div>
+</div>
+{% endblock %}

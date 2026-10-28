@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Menu{% endblock %}
+{% block container_class %}container-wide{% endblock %}
+{% block content %}
+
+<div class="pos-layout">
+  <div>
+    <div class="page-head">
+      <h1>Menu</h1>
+      <p>Choose a product to add it to the order.</p>
+    </div>
+
+    {% for category in categories %}
+      {% set group = items | selectattr('category', 'equalto', category) | list %}
+      {% if group %}
+      <section class="menu-section">
+        <div class="cat-title">{{ category }}</div>
+        <div class="item-grid">
+        {% for item in group %}
+        <button class="item-btn" type="button"
+                data-id="{{ item.id }}" data-name="{{ item.name }}" data-price="{{ item.price }}">
+          {% if item.category == 'Coffee Drinks' %}
+          <img class="product-image" src="{{ url_for('static', filename='img/coffee-drink.svg') }}" alt="" loading="lazy">
+          {% elif item.category == 'Freshie Drinks' %}
+          <img class="product-image" src="{{ url_for('static', filename='img/freshie-drink.svg') }}" alt="" loading="lazy">
+          {% elif item.category == 'Food' %}
+          <img class="product-image" src="{{ url_for('static', filename='img/food.svg') }}" alt="" loading="lazy">
+          {% else %}
+          <img class="product-image" src="{{ url_for('static', filename='img/pastry.svg') }}" alt="" loading="lazy">
+          {% endif %}
+          <span class="product-copy">
+            <span class="nm">{{ item.name }}</span>
+            <span class="pr">&#8369;{{ '%.2f'|format(item.price) }}</span>
+          </span>
+        </button>
+        {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <aside class="cart">
+    <div class="cart-head">
+      <h2>Receipt</h2>
+      <span class="small muted" id="cart-count">0 items</span>
+    </div>
+    <div class="cart-body" id="cart-body"></div>
+    <div class="cart-foot" id="cart-foot" style="display:none">
+      <div class="total-row"><span>Net of VAT</span><span class="mono" id="sum-net">&#8369;0.00</span></div>
+      <div class="total-row"><span>VAT (12%)</span><span class="mono" id="sum-vat">&#8369;0.00</span></div>
+      <div class="total-row grand"><span>Total</span><span class="mono" id="sum-total">&#8369;0.00</span></div>
+      <button class="btn btn-success btn-block btn-lg" id="btn-pay" type="button">Take Payment</button>
+      <button class="btn btn-block btn-sm" id="btn-clear" type="button" style="margin-top:8px">Clear</button>
+    </div>
+  </aside>
+</div>
+
+<!-- Payment -->
+<div class="modal-bg" id="pay-modal">
+  <div class="modal">
+    <h2>Take Payment</h2>
+    <p class="small muted">Amount due <strong class="mono" id="pay-due">&#8369;0.00</strong></p>
+
+    <div class="alert alert-error" id="pay-error" style="display:none"></div>
+
+    <div class="field">
+      <label>Order type</label>
+      <div class="seg" id="service-types">
+        <button type="button" class="seg-btn active" data-service="dine_in">Dine In</button>
+        <button type="button" class="seg-btn" data-service="takeout">Take Out</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Payment method</label>
+      <div class="seg" id="pay-methods">
+        <button type="button" class="seg-btn active" data-method="cash">Cash</button>
+        <button type="button" class="seg-btn" data-method="ewallet"
+                {{ 'disabled title="E-wallet payments are disabled in the public demo"' if config['PUBLIC_DEMO'] }}>
+          GCash{% if config['PUBLIC_DEMO'] %} (Demo unavailable){% endif %}
+        </button>
+      </div>
+    </div>
+
+    <div id="gcash-section" class="gcash-section" style="display:none">
+      {% if config['PUBLIC_DEMO'] %}
+      <div>
+        <strong>E-wallet payments are disabled in this demo</strong>
+        <p>No payment is processed or verified by this project.</p>
+      </div>
+      {% else %}
+      <img src="{{ url_for('pos.merchant_qr') }}" alt="Cafe merchant InstaPay QR code">
+      <div>
+        <strong>Merchant InstaPay QR</strong>
+        <p>Scan with GCash or another supported payment app. Confirm the payment in the merchant account before completing the sale.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <div id="cash-section">
+      <div class="field">
+        <label for="pay-tendered">Cash received</label>
+        <input type="number" id="pay-tendered" step="0.01" min="0" inputmode="decimal" placeholder="0.00">
+      </div>
+      <div class="quick-cash" id="quick-cash"></div>
+      <div class="change-box">
+        <span>Change due</span>
+        <strong class="mono" id="pay-change">&#8369;0.00</strong>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn" style="flex:1" type="button" id="btn-pay-cancel">Cancel</button>
+      <button class="btn btn-success" style="flex:1" type="button" id="btn-pay-confirm">Complete Sale</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/terminal.js') }}"></script>
+{% endblock %}

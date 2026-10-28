@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 190" role="img" aria-label="Illustration of a cafe meal">
+  <rect width="320" height="190" rx="18" fill="#f3ebe1"/>
+  <circle cx="251" cy="44" r="24" fill="#e8d7c5"/>
+  <ellipse cx="160" cy="119" rx="88" ry="45" fill="#fff" stroke="#c9aa8c" stroke-width="5"/>
+  <ellipse cx="160" cy="117" rx="67" ry="29" fill="#e2bd7d"/>
+  <path d="M111 118c17-22 39-28 62-14s34 16 45-2c-4 25-26 39-50 25s-38-13-57-9z" fill="#6d9b58"/>
+  <path d="M124 96c20-16 43-17 67 1" fill="none" stroke="#a44e37" stroke-linecap="round" stroke-width="9"/>
+  <circle cx="143" cy="122" r="7" fill="#d06045"/>
+  <circle cx="183" cy="106" r="7" fill="#d06045"/>
+  <path d="M90 165h140" stroke="#dbc6af" stroke-linecap="round" stroke-width="6"/>
+</svg>

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Set Up Owner Account{% endblock %}
+{% block content %}
+<div class="center-stage">
+  <div class="auth-card">
+    <div class="auth-head">
+      <div style="font-size:32px">&#9749;</div>
+      <h1>Welcome — let's get set up</h1>
+      <p>No owner account exists yet. Create the first one to unlock the back office.</p>
+    </div>
+
+    {% if errors %}
+    <div class="alert alert-error">
+      <strong>Could not create the account:</strong>
+      <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% if config.get('ADMIN_SETUP_TOKEN') %}
+      <div class="field">
+        <label for="setup_token">One-time deployment setup token</label>
+        <input type="password" id="setup_token" name="setup_token" required autocomplete="off">
+      </div>
+      {% endif %}
+      <div class="field">
+        <label for="full_name">Full name</label>
+        <input type="text" id="full_name" name="full_name" required maxlength="60" autocomplete="name">
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="text" id="email" name="email" required maxlength="254" autocomplete="username">
+        <div class="hint">This is what you'll log in with, and where a password-reset code goes if you ever need one.</div>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required maxlength="128" autocomplete="new-password">
+        <div class="hint">8+ characters with at least one letter and one number.</div>
+      </div>
+      <div class="field">
+        <label for="pin">Terminal PIN</label>
+        <input type="password" id="pin" name="pin" inputmode="numeric" maxlength="4"
+               pattern="\d{4}" required autocomplete="off">
+        <div class="hint">Exactly 4 digits, for quick access at the POS terminal. Avoid patterns like 1234 or 0000.</div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block btn-lg">Create Owner Account</button>
+    </form>
+
+    <p class="small muted" style="text-align:center;margin-top:16px">
+      This only appears once. After this account is created, every other account — admin or cashier — is added from inside the back office.
+    </p>
+  </div>
+</div>
+{% endblock %}

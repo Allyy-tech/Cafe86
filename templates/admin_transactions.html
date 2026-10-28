@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}All Transactions{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>All Transactions</h1>
+  <p>Most recent 100 sales, including voided ones. Voided sales are never erased &mdash; only marked.</p>
+  <a class="btn btn-primary" href="{{ url_for('admin.transactions_export') }}">Export all sales to Excel</a>
+</div>
+
+<div class="card">
+  {% if txns %}
+  <table>
+    <thead>
+      <tr><th>#</th><th>Date</th><th>Cashier</th><th>Order type</th><th>Payment</th><th class="num">Total</th><th>Status</th><th>Voided by</th><th>Backup</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for t in txns %}
+      <tr>
+        <td class="mono">#{{ t.id }}</td>
+        <td class="small">{{ t.created_at[:16] }}</td>
+        <td>{{ t.cashier_name }}</td>
+        <td>{{ 'Dine In' if t.service_type == 'dine_in' else 'Take Out' }}</td>
+        <td class="small muted">{% if t.payment_method == 'ewallet' %}GCash{% else %}{{ t.payment_method | title }}{% endif %}</td>
+        <td class="num mono">&#8369;{{ '%.2f'|format(t.total) }}</td>
+        <td>
+          {% if t.is_demo %}<span class="pill pill-warn">DEMO SALE</span>
+          {% elif t.status == 'voided' %}<span class="pill pill-bad">VOIDED</span>
+          {% else %}<span class="pill pill-ok">COMPLETED</span>{% endif %}
+        </td>
+        <td class="small muted">
+          {% if t.voided_by_name %}{{ t.voided_by_name }}<br><span class="small">{{ t.void_reason }}</span>{% else %}&mdash;{% endif %}
+        </td>
+        <td>
+          {% if t.sync_status == 'pending' %}<span class="pill pill-warn">QUEUED</span>
+          {% else %}<span class="pill pill-neutral">SYNCED</span>{% endif %}
+        </td>
+        <td><a class="btn btn-sm" href="{{ url_for('pos.receipt', transaction_id=t.id) }}">View</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">No transactions recorded yet.</div>
+  {% endif %}
+</div>
+
+{% endblock %}

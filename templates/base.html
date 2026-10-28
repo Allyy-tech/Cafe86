@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Cafe86{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+{% if current_user.get('user_id') %}
+<div class="topbar">
+  <a class="brand" href="{{ url_for('auth.landing') }}">
+    <span class="brand-mark">&#9749;</span> Cafe86
+  </a>
+
+  <nav class="topnav">
+    <a href="{{ url_for('pos.terminal') }}" class="{{ 'active' if request.endpoint == 'pos.terminal' }}">Menu</a>
+    <a href="{{ url_for('pos.history') }}" class="{{ 'active' if request.endpoint == 'pos.history' }}">Today's Sales</a>
+    {% if current_user.get('role') == 'admin' %}
+      <a href="{{ url_for('admin.dashboard') }}" class="{{ 'active' if request.endpoint == 'admin.dashboard' }}">Dashboard</a>
+      <a href="{{ url_for('admin.menu') }}" class="{{ 'active' if request.endpoint == 'admin.menu' }}">Catalog Management</a>
+      <a href="{{ url_for('admin.users') }}" class="{{ 'active' if request.endpoint == 'admin.users' }}">Account Management</a>
+      <a href="{{ url_for('admin.audit_log') }}" class="{{ 'active' if request.endpoint == 'admin.audit_log' }}">Audit Log</a>
+    {% endif %}
+  </nav>
+
+  <div class="topbar-right">
+    <span id="status-badge" class="status-badge status-offline"><span class="dot"></span>Checking…</span>
+    <div class="who">
+      <strong>{{ current_user.get('full_name') }}</strong>
+      {{ current_user.get('role') | title }}
+    </div>
+    <a class="btn btn-sm" href="{{ url_for('auth.logout') }}">Log out</a>
+  </div>
+</div>
+{% endif %}
+
+<div class="container {% block container_class %}{% endblock %}">
+  {% block content %}{% endblock %}
+</div>
+
+<div id="toast" class="toast"></div>
+<script src="{{ url_for('static', filename='js/pos.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

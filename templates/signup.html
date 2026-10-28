@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Request Staff Account{% endblock %}
+{% block content %}
+<div class="center-stage">
+  <main class="auth-card login-card">
+    <div class="auth-head">
+      <div class="login-brand-mark login-brand-mark-small">&#128100;</div>
+      <p class="login-eyebrow">STAFF ACCOUNT REQUEST</p>
+      <h1>Request an account</h1>
+      <p>Your account must be approved by a café administrator before you can sign in.</p>
+    </div>
+
+    {% if submitted %}
+    <div class="alert alert-ok" role="status">
+      Request submitted. An administrator must approve your staff account before it can be used.
+    </div>
+    {% else %}
+    {% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>{% endif %}
+    <form method="post" action="{{ url_for('auth.signup') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label for="full_name">Full name</label>
+        <input type="text" id="full_name" name="full_name" required maxlength="60"
+               autocomplete="name" value="{{ full_name }}">
+      </div>
+      <div class="field">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required maxlength="20"
+               pattern="[a-zA-Z0-9_]{3,20}" autocomplete="username" value="{{ username }}">
+        <div class="hint">3–20 letters, numbers, or underscores.</div>
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required maxlength="254"
+               autocomplete="email" value="{{ email }}">
+      </div>
+      <div class="field">
+        <label for="pin">Staff PIN</label>
+        <input type="password" id="pin" name="pin" required maxlength="4"
+               inputmode="numeric" pattern="[0-9]{4}" autocomplete="new-password">
+        <div class="hint">Choose a private 4-digit PIN. Avoid easy patterns such as 1234 or 0000.</div>
+      </div>
+      <div class="field captcha-field">
+        <label for="captcha_answer">Security check: {{ captcha_question }}</label>
+        <input type="text" id="captcha_answer" name="captcha_answer" required
+               inputmode="numeric" pattern="[0-9]{1,2}" maxlength="2" autocomplete="off">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block btn-lg">Submit account request</button>
+    </form>
+    {% endif %}
+
+    <div class="login-signup">
+      <span>Already have an account?</span>
+      <a href="{{ url_for('auth.landing') }}">Return to sign in</a>
+    </div>
+  </main>
+</div>
+{% endblock %}

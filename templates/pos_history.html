@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Today's Sales{% endblock %}
+{% block content %}
+
+<div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px">
+  <div>
+    <h1>Today's Sales</h1>
+    <p>{% if current_user.get('role') == 'admin' %}Today's transactions. Demo sales are labeled and excluded from the shift total.{% else %}Transactions you rang up today.{% endif %}</p>
+  </div>
+  <div class="card stat" style="padding:12px 18px;min-width:180px">
+    <div class="label">Shift Total</div>
+    <div class="value money" style="font-size:22px">&#8369;{{ '%.2f'|format(shift_total) }}</div>
+  </div>
+</div>
+
+<div class="card">
+  {% if txns %}
+  <table>
+    <thead>
+      <tr><th>#</th><th>Time</th><th>Cashier</th><th>Order type</th><th>Payment</th><th class="num">Total</th><th>Status</th><th>Backup</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for t in txns %}
+      <tr>
+        <td class="mono">#{{ t.id }}</td>
+        <td class="small">{{ t.created_at[11:16] }}</td>
+        <td>{{ t.cashier_name }}</td>
+        <td>{{ 'Dine In' if t.service_type == 'dine_in' else 'Take Out' }}</td>
+        <td><span class="pill pill-neutral">{% if t.payment_method == 'ewallet' %}GCASH{% else %}{{ t.payment_method | upper }}{% endif %}</span></td>
+        <td class="num mono">&#8369;{{ '%.2f'|format(t.total) }}</td>
+        <td>
+          {% if t.is_demo %}<span class="pill pill-warn">DEMO SALE</span>
+          {% elif t.status == 'voided' %}<span class="pill pill-bad">VOIDED</span>
+          {% else %}<span class="pill pill-ok">COMPLETED</span>{% endif %}
+        </td>
+        <td>
+          {% if t.sync_status == 'pending' %}<span class="pill pill-warn">QUEUED</span>
+          {% else %}<span class="pill pill-neutral">SYNCED</span>{% endif %}
+        </td>
+        <td class="row-actions">
+          <a class="btn btn-sm" href="{{ url_for('pos.receipt', transaction_id=t.id) }}">View</a>
+          {% if t.status == 'completed' and not t.is_demo %}
+          <button class="btn btn-sm btn-danger btn-void" type="button" data-id="{{ t.id }}">Void</button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">No sales recorded yet today.</div>
+  {% endif %}
+</div>
+
+<div class="modal-bg" id="void-modal">
+  <div class="modal">
+    <h2>Void transaction <span id="void-txn-id"></span></h2>
+    <p class="small muted">A manager or owner PIN is required. This action is permanently recorded in the audit log.</p>
+    <div class="alert alert-error" id="void-error" style="display:none"></div>
+    <div class="field">
+      <label for="void-reason">Reason</label>
+      <input type="text" id="void-reason" maxlength="120" placeholder="e.g. Customer changed order">
+    </div>
+    <div class="field">
+      <label for="void-pin">Manager PIN</label>
+      <input type="password" id="void-pin" inputmode="numeric" maxlength="4" placeholder="••••">
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn" style="flex:1" type="button" id="btn-void-cancel">Cancel</button>
+      <button class="btn btn-danger" style="flex:1" type="button" id="btn-void-confirm">Void Sale</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/void.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Catalog Management{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>Catalog Management</h1>
+  <p>Organize products by section, update prices, and control what appears on the Menu page.</p>
+</div>
+
+{% if errors %}
+<div class="alert alert-error" role="alert">
+  <strong>Could not save:</strong>
+  <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<div class="card catalog-create">
+  <h2>Add Product</h2>
+  <form method="post" action="{{ url_for('admin.menu_create') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="catalog-create-grid">
+      <div class="field">
+        <label for="name">Product name</label>
+        <input type="text" id="name" name="name" required maxlength="60" placeholder="e.g. Spanish Latte">
+      </div>
+      <div class="field">
+        <label for="category">Section</label>
+        <select id="category" name="category" required>
+          {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="price">Selling price</label>
+        <input type="number" id="price" name="price" step="0.01" min="0.01" required placeholder="0.00">
+      </div>
+      <div class="field">
+        <label for="cost_price">Cost to make</label>
+        <input type="number" id="cost_price" name="cost_price" step="0.01" min="0.01" required placeholder="0.00">
+      </div>
+    </div>
+    <button class="btn btn-primary" type="submit">Add Product</button>
+  </form>
+</div>
+
+<div class="catalog-groups">
+  {% for category in categories %}
+  {% set group = items | selectattr('category', 'equalto', category) | list %}
+  {% if group %}
+  <section class="card catalog-group">
+    <div class="catalog-group-head">
+      <div>
+        <p class="login-eyebrow">PRODUCT SECTION</p>
+        <h2>{{ category }}</h2>
+      </div>
+      <span class="pill pill-neutral">{{ group | length }} item(s)</span>
+    </div>
+
+    <div class="catalog-items">
+      {% for item in group %}
+      <article class="catalog-item {{ 'dimmed' if not item.is_active }}">
+        <div class="catalog-item-name">
+          <strong>{{ item.name }}</strong>
+          <span class="small muted">{{ 'Active on Menu' if item.is_active else 'Hidden from Menu' }}</span>
+        </div>
+        <div class="catalog-controls">
+          <form method="post" action="{{ url_for('admin.menu_update') }}" class="catalog-item-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="item_id" value="{{ item.id }}">
+            <div>
+              <label for="price{{ item.id }}">Price</label>
+              <input type="number" id="price{{ item.id }}" name="price" step="0.01" min="0.01" required
+                     value="{{ '%.2f'|format(item.price) }}">
+            </div>
+            <div>
+              <label for="cost{{ item.id }}">Cost</label>
+              <input type="number" id="cost{{ item.id }}" name="cost_price" step="0.01" min="0.01" required
+                     value="{{ '%.2f'|format(item.cost_price) }}">
+            </div>
+            <span class="catalog-margin">{{ '%.0f'|format((item.price - item.cost_price) / item.price * 100) }}% margin</span>
+            <span class="checkline">
+              <input type="checkbox" name="is_active" id="active{{ item.id }}" {{ 'checked' if item.is_active }}>
+              <label for="active{{ item.id }}">Show</label>
+            </span>
+            <button class="btn btn-sm btn-primary" type="submit">Save</button>
+          </form>
+          {% if item.is_active %}
+          <form method="post" action="{{ url_for('admin.menu_remove', item_id=item.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm btn-danger" type="submit">Remove</button>
+          </form>
+          {% else %}
+          <span class="pill pill-bad">OFF MENU</span>
+          {% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+  {% endfor %}
+</div>
+
+<p class="small muted">
+  Removing a product hides it from the Menu page but keeps past receipts intact.
+</p>
+{% endblock %}

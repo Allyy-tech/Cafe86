@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Staff Sign in{% endblock %}
+{% block content %}
+<div class="center-stage">
+  <div class="auth-card staff-login-card">
+    <div class="auth-head">
+      <div class="login-brand-mark login-brand-mark-small">&#9749;</div>
+      <p class="login-eyebrow">TEAM MEMBER ACCESS</p>
+      <h1>Sign in to your shift</h1>
+      <p>Enter your Staff ID and private 4-digit PIN.</p>
+    </div>
+    {% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>{% endif %}
+
+    <form method="post" action="{{ url_for('auth.pos_login') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label for="staff_id">Staff ID</label>
+        <input type="text" id="staff_id" name="staff_id" required maxlength="20"
+               pattern="[a-zA-Z0-9_]{3,20}" autocomplete="username"
+               placeholder="Enter your Staff ID" autofocus>
+        <div class="hint">Use the ID provided by your café administrator.</div>
+      </div>
+      <div class="field">
+        <label for="pin">Verification PIN</label>
+        <input type="password" id="pin" name="pin" required maxlength="4"
+               inputmode="numeric" pattern="[0-9]{4}" autocomplete="current-password"
+               placeholder="4-digit PIN">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block btn-lg">Verify &amp; Sign in</button>
+    </form>
+
+    <p class="login-security login-security-card"><span aria-hidden="true">&#128274;</span> Your PIN is private. Never share it with anyone.</p>
+    <div class="divider"></div>
+    <a class="btn btn-block" href="{{ url_for('auth.landing') }}">Back</a>
+  </div>
+</div>
+{% endblock %}
