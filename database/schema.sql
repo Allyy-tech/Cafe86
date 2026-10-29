@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS menu_items (
     cost_price  REAL NOT NULL DEFAULT 0,
     is_active   INTEGER NOT NULL DEFAULT 1,
     image_filename TEXT,
+    description TEXT NOT NULL DEFAULT '',
     is_archived INTEGER NOT NULL DEFAULT 0,
     archived_at TEXT
 );

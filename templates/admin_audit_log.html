@@ -8,13 +8,20 @@
 </div>
 
 <div class="card">
+  <div class="category-filter" role="group" aria-label="Filter audit logs by category">
+    <a class="filter-btn {{ 'active' if selected_category == 'All' }}" href="{{ url_for('admin.audit_log') }}" aria-pressed="{{ 'true' if selected_category == 'All' else 'false' }}">All ({{ total_count }})</a>
+    {% for category, count in audit_categories.items() %}
+    <a class="filter-btn {{ 'active' if selected_category == category }}" href="{{ url_for('admin.audit_log', category=category) }}" aria-pressed="{{ 'true' if selected_category == category else 'false' }}">{{ category }} ({{ count }})</a>
+    {% endfor %}
+  </div>
   {% if logs %}
-  <table>
-    <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Details</th></tr></thead>
+  <table class="audit-log-table">
+    <thead><tr><th>When</th><th>Category</th><th>Who</th><th>Action</th><th>Details</th></tr></thead>
     <tbody>
       {% for l in logs %}
       <tr>
         <td class="small mono" style="white-space:nowrap">{{ l.created_at }}</td>
+        <td><span class="pill pill-neutral">{{ l.category }}</span></td>
         <td>{{ l.actor_name or 'unknown' }}</td>
         <td>
           {% if l.action in ['VOID_APPROVED','VOID_DENIED','ACCOUNT_LOCKED','LOGIN_FAILED','USER_DEACTIVATED','PASSWORD_RESET_FAILED'] %}
@@ -31,7 +38,7 @@
     </tbody>
   </table>
   {% else %}
-  <div class="empty-state">No activity recorded yet.</div>
+  <div class="empty-state">{% if selected_category == 'All' %}No activity recorded yet.{% else %}No {{ selected_category|lower }} activity found in the latest 500 audit entries.{% endif %}</div>
   {% endif %}
 </div>
 

@@ -47,6 +47,10 @@
         <label for="new-product-image">Product image (optional)</label>
         <input type="file" id="new-product-image" name="image" accept="image/png,image/jpeg,image/webp">
       </div>
+      <div class="field catalog-description-field">
+        <label for="new-product-description">Short preparation description</label>
+        <textarea id="new-product-description" name="description" rows="2" maxlength="180" placeholder="Briefly describe how this product is prepared"></textarea>
+      </div>
     </div>
     <button class="btn btn-primary" type="submit">Add Product</button>
   </form>
@@ -117,6 +121,10 @@
               <input type="checkbox" name="is_active" id="active{{ item.id }}" {{ 'checked' if item.is_active }}>
               <label for="active{{ item.id }}">Show</label>
             </span>
+            <div class="catalog-description-field">
+              <label for="description{{ item.id }}">Preparation description</label>
+              <textarea id="description{{ item.id }}" name="description" rows="2" maxlength="180">{{ item.description }}</textarea>
+            </div>
           </form>
           <div class="catalog-item-actions">
             <button class="btn btn-sm btn-primary" type="submit" form="product-update{{ item.id }}">Save</button>

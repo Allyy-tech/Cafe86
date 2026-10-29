@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Menu{% endblock %}
+{% block body_class %}menu-background{% endblock %}
 {% block container_class %}container-wide{% endblock %}
 {% block content %}
 
@@ -27,7 +28,8 @@
         <div class="item-grid">
         {% for item in group %}
         <button class="item-btn" type="button"
-                data-id="{{ item.id }}" data-name="{{ item.name }}" data-price="{{ item.price }}">
+                data-id="{{ item.id }}" data-name="{{ item.name }}" data-price="{{ item.price }}"
+                data-product-description="{{ item.description }}">
           {% if item.image_filename %}
           <img class="product-image" src="{{ url_for('pos.product_image', image_filename=item.image_filename) }}" alt="{{ item.name }}" loading="lazy">
           {% elif item.category == 'Coffee Drinks' %}

@@ -209,4 +209,15 @@ def run_migrations(db):
     db.execute("UPDATE menu_items SET category = 'Coffee Drinks' WHERE category = 'Coffee'")
     db.execute("UPDATE menu_items SET category = 'Freshie Drinks' WHERE category = 'Drinks'")
     db.execute("UPDATE menu_items SET category = 'Meals' WHERE category IN ('Food', 'Cuisine')")
+    if "description" not in menu_columns:
+        db.execute("ALTER TABLE menu_items ADD COLUMN description TEXT NOT NULL DEFAULT ''")
+    from database.product_descriptions import default_product_description
+    existing_products = db.execute(
+        "SELECT id, name, category FROM menu_items WHERE description IS NULL OR description = ''"
+    ).fetchall()
+    for product in existing_products:
+        db.execute(
+            "UPDATE menu_items SET description = ? WHERE id = ?",
+            (default_product_description(product["name"], product["category"]), product["id"]),
+        )
     db.commit()

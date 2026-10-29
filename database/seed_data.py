@@ -12,6 +12,7 @@ from flask import current_app
 from werkzeug.security import generate_password_hash
 
 from database.db import get_db, now_str, run_migrations
+from database.product_descriptions import default_product_description
 
 # Menu: (name, category, selling price, cost to make)
 MENU_ITEMS = [
@@ -59,9 +60,9 @@ def ensure_seed_data():
     if menu_count == 0:
         for name, category, price, cost in MENU_ITEMS:
             db.execute(
-                "INSERT INTO menu_items (name, category, price, cost_price, is_active) "
-                "VALUES (?, ?, ?, ?, 1)",
-                (name, category, price, cost),
+                "INSERT INTO menu_items (name, category, price, cost_price, is_active, description) "
+                "VALUES (?, ?, ?, ?, 1, ?)",
+                (name, category, price, cost, default_product_description(name, category)),
             )
 
     user_count = db.execute("SELECT COUNT(*) AS c FROM users").fetchone()["c"]

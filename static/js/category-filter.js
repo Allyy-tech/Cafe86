@@ -12,7 +12,14 @@ document.addEventListener('DOMContentLoaded', () => {
         candidate.setAttribute('aria-pressed', String(active));
       });
       sections.forEach((section) => {
-        section.hidden = selected !== 'all' && section.dataset.filterSection !== selected;
+        const visible = selected === 'all' || section.dataset.filterSection === selected;
+        section.classList.remove('category-enter');
+        section.hidden = !visible;
+        if (visible) {
+          // Restart the entrance animation whenever a category is selected.
+          void section.offsetWidth;
+          section.classList.add('category-enter');
+        }
       });
     });
   });

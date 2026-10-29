@@ -17,6 +17,7 @@ from openpyxl.utils import get_column_letter
 from werkzeug.security import generate_password_hash
 
 from database.db import get_db, now_str
+from database.product_descriptions import default_product_description
 from security.audit import log_action
 from security.decorators import admin_required
 from security.validators import is_valid_email, is_valid_password, is_valid_pin, is_valid_price, is_valid_username
@@ -24,6 +25,25 @@ from security.validators import is_valid_email, is_valid_password, is_valid_pin,
 admin_bp = Blueprint("admin", __name__)
 
 CATEGORIES = ("Coffee Drinks", "Freshie Drinks", "Meals", "Pastry")
+
+AUDIT_CATEGORIES = {
+    "Sales & Voids": {"SALE_COMPLETED", "VOID_APPROVED", "VOID_DENIED"},
+    "Product Catalog": {
+        "MENU_ITEM_CREATED", "MENU_ITEM_UPDATED", "MENU_ITEM_ARCHIVED",
+        "MENU_ITEM_RESTORED", "MENU_ITEM_DELETED_PERMANENTLY",
+        "MENU_IMAGE_UPDATED", "MENU_IMAGE_REMOVED",
+    },
+    "Staff Accounts": {
+        "USER_CREATED", "STAFF_SIGNUP_REQUESTED", "STAFF_SIGNUP_APPROVED",
+        "USER_DEACTIVATED", "PIN_RESET",
+    },
+    "Sign-in & Security": {
+        "LOGIN_SUCCESS", "LOGIN_FAILED", "LOGOUT", "ACCOUNT_LOCKED",
+    },
+    "Password Recovery": {
+        "PASSWORD_RESET_REQUESTED", "PASSWORD_RESET_FAILED", "PASSWORD_RESET_COMPLETED",
+    },
+}
 
 
 def _excel_safe_values(values):
@@ -188,12 +208,15 @@ def menu_create():
     category = request.form.get("category")
     price = request.form.get("price")
     cost_price = request.form.get("cost_price")
+    description = (request.form.get("description") or "").strip()
     image_upload = request.files.get("image")
     image_filename, image_error = _catalog_image_filename(image_upload)
 
     errors = []
     if not name or len(name) > 60:
         errors.append("Item name is required and must be 60 characters or fewer.")
+    if len(description) > 180:
+        errors.append("Product description must be 180 characters or fewer.")
     if category not in CATEGORIES:
         errors.append("Please choose a valid category.")
     if not is_valid_price(price):
@@ -216,15 +239,16 @@ def menu_create():
 
     price = round(float(price), 2)
     cost_price = round(float(cost_price), 2)
+    description = description or default_product_description(name, category)
     image_dir = current_app.config["PRODUCT_IMAGE_DIR"]
     if image_filename:
         os.makedirs(image_dir, exist_ok=True)
         image_upload.save(os.path.join(image_dir, image_filename))
     try:
         db.execute(
-            "INSERT INTO menu_items (name, category, price, cost_price, is_active, image_filename) "
-            "VALUES (?, ?, ?, ?, 1, ?)",
-            (name, category, price, cost_price, image_filename),
+            "INSERT INTO menu_items (name, category, price, cost_price, is_active, image_filename, description) "
+            "VALUES (?, ?, ?, ?, 1, ?, ?)",
+            (name, category, price, cost_price, image_filename, description),
         )
         db.commit()
     except Exception:
@@ -243,12 +267,15 @@ def menu_update():
     item_id = request.form.get("item_id")
     price = request.form.get("price")
     cost_price = request.form.get("cost_price")
+    description = (request.form.get("description") or "").strip()
     is_active = 1 if request.form.get("is_active") == "on" else 0
 
     db = get_db()
     item = db.execute("SELECT * FROM menu_items WHERE id = ?", (item_id,)).fetchone()
     if not item:
         abort(404)
+    if len(description) > 180:
+        return _render_menu_with_errors(["Product description must be 180 characters or fewer."])
     if not is_valid_price(price) or not is_valid_price(cost_price):
         return _render_menu_with_errors(["Price and cost must both be numbers greater than 0."])
     if float(cost_price) > float(price):
@@ -256,9 +283,10 @@ def menu_update():
 
     price = round(float(price), 2)
     cost_price = round(float(cost_price), 2)
+    description = description or default_product_description(item["name"], item["category"])
     db.execute(
-        "UPDATE menu_items SET price = ?, cost_price = ?, is_active = ? WHERE id = ?",
-        (price, cost_price, is_active, item_id),
+        "UPDATE menu_items SET price = ?, cost_price = ?, is_active = ?, description = ? WHERE id = ?",
+        (price, cost_price, is_active, description, item_id),
     )
     db.commit()
     log_action(db, session["user_id"], session.get("full_name"), "MENU_ITEM_UPDATED",
@@ -539,8 +567,28 @@ def users_reset_pin(user_id):
 @admin_required
 def audit_log():
     db = get_db()
-    logs = db.execute("SELECT * FROM audit_log ORDER BY created_at DESC LIMIT 200").fetchall()
-    return render_template("admin_audit_log.html", logs=logs)
+    records = db.execute("SELECT * FROM audit_log ORDER BY created_at DESC LIMIT 500").fetchall()
+    all_logs = []
+    category_counts = {name: 0 for name in AUDIT_CATEGORIES}
+    category_counts["Other"] = 0
+    for record in records:
+        log = dict(record)
+        log["category"] = next(
+            (name for name, actions in AUDIT_CATEGORIES.items() if log["action"] in actions),
+            "Other",
+        )
+        category_counts[log["category"]] += 1
+        all_logs.append(log)
+
+    selected_category = request.args.get("category", "All")
+    if selected_category not in ("All", *category_counts.keys()):
+        selected_category = "All"
+    logs = [log for log in all_logs
+            if selected_category == "All" or log["category"] == selected_category]
+    return render_template(
+        "admin_audit_log.html", logs=logs, audit_categories=category_counts,
+        selected_category=selected_category, total_count=len(all_logs),
+    )
 
 
 @admin_bp.route("/transactions")

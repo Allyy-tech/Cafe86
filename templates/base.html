@@ -6,7 +6,7 @@
 <title>{% block title %}CAFE86{% endblock %}</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body>
+<body class="{% if current_user.get('user_id') %}app-dark-background {% endif %}{% block body_class %}{% endblock %}">
 
 {% if current_user.get('user_id') %}
 <div class="topbar">
@@ -44,6 +44,7 @@
 
 <div id="toast" class="toast"></div>
 <script src="{{ url_for('static', filename='js/pos.js') }}"></script>
+<script src="{{ url_for('static', filename='js/password-toggle.js') }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>
