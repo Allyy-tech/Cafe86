@@ -6,8 +6,10 @@ staff accounts lives.
 """
 from datetime import datetime, timedelta
 from io import BytesIO
+import os
+import uuid
 
-from flask import Blueprint, abort, redirect, render_template, request, send_file, session, url_for
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_file, session, url_for
 from openpyxl.chart import BarChart, Reference
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -21,7 +23,7 @@ from security.validators import is_valid_email, is_valid_password, is_valid_pin,
 
 admin_bp = Blueprint("admin", __name__)
 
-CATEGORIES = ("Coffee Drinks", "Freshie Drinks", "Food", "Pastry")
+CATEGORIES = ("Coffee Drinks", "Freshie Drinks", "Meals", "Pastry")
 
 
 def _excel_safe_values(values):
@@ -31,6 +33,34 @@ def _excel_safe_values(values):
             value = "'" + value
         safe_values.append(value)
     return safe_values
+
+
+def _remove_product_image(image_dir, filename):
+    """Delete only a plain filename under the configured product image folder."""
+    if not filename or os.path.basename(filename) != filename:
+        return
+    try:
+        os.remove(os.path.join(image_dir, filename))
+    except OSError:
+        current_app.logger.warning("Could not remove product image %s", filename)
+
+
+def _catalog_image_filename(upload):
+    """Return a generated filename and validation error for an optional image."""
+    if not upload or not upload.filename:
+        return None, None
+    header = upload.stream.read(12)
+    upload.stream.seek(0)
+    extension = os.path.splitext(upload.filename)[1].lower()
+    signatures = {
+        ".png": header.startswith(b"\x89PNG\r\n\x1a\n"),
+        ".jpg": header.startswith(b"\xff\xd8\xff"),
+        ".jpeg": header.startswith(b"\xff\xd8\xff"),
+        ".webp": header.startswith(b"RIFF") and header[8:12] == b"WEBP",
+    }
+    if extension not in signatures or not signatures[extension]:
+        return None, "Use a valid PNG, JPG, or WEBP image (maximum 5 MB)."
+    return f"{uuid.uuid4().hex}{extension}", None
 
 
 # ---------------------------------------------------------------- dashboard
@@ -133,19 +163,20 @@ def dashboard():
 def menu():
     db = get_db()
     items = db.execute(
-        "SELECT * FROM menu_items ORDER BY "
+        "SELECT * FROM menu_items WHERE is_archived = 0 ORDER BY "
         "CASE category WHEN 'Coffee Drinks' THEN 1 WHEN 'Freshie Drinks' THEN 2 "
-        "WHEN 'Food' THEN 3 WHEN 'Pastry' THEN 4 ELSE 5 END, name"
+        "WHEN 'Meals' THEN 3 WHEN 'Pastry' THEN 4 ELSE 5 END, name"
     ).fetchall()
-    return render_template("admin_menu.html", items=items, categories=CATEGORIES, errors=None)
+    return render_template("admin_menu.html", items=items, categories=CATEGORIES, errors=None,
+                           image_error=request.args.get("image_error"))
 
 
 def _render_menu_with_errors(errors):
     db = get_db()
     items = db.execute(
-        "SELECT * FROM menu_items ORDER BY "
+        "SELECT * FROM menu_items WHERE is_archived = 0 ORDER BY "
         "CASE category WHEN 'Coffee Drinks' THEN 1 WHEN 'Freshie Drinks' THEN 2 "
-        "WHEN 'Food' THEN 3 WHEN 'Pastry' THEN 4 ELSE 5 END, name"
+        "WHEN 'Meals' THEN 3 WHEN 'Pastry' THEN 4 ELSE 5 END, name"
     ).fetchall()
     return render_template("admin_menu.html", items=items, categories=CATEGORIES, errors=errors)
 
@@ -157,6 +188,8 @@ def menu_create():
     category = request.form.get("category")
     price = request.form.get("price")
     cost_price = request.form.get("cost_price")
+    image_upload = request.files.get("image")
+    image_filename, image_error = _catalog_image_filename(image_upload)
 
     errors = []
     if not name or len(name) > 60:
@@ -167,6 +200,10 @@ def menu_create():
         errors.append("Selling price must be a number greater than 0.")
     if not is_valid_price(cost_price):
         errors.append("Cost price must be a number greater than 0.")
+    if image_error:
+        errors.append(image_error)
+    if request.content_length and request.content_length > current_app.config["MAX_CONTENT_LENGTH"]:
+        errors.append("Image must be 5 MB or smaller.")
     if not errors and float(cost_price) > float(price):
         errors.append("Cost price cannot be higher than the selling price.")
 
@@ -179,13 +216,24 @@ def menu_create():
 
     price = round(float(price), 2)
     cost_price = round(float(cost_price), 2)
-    db.execute(
-        "INSERT INTO menu_items (name, category, price, cost_price, is_active) VALUES (?, ?, ?, ?, 1)",
-        (name, category, price, cost_price),
-    )
-    db.commit()
+    image_dir = current_app.config["PRODUCT_IMAGE_DIR"]
+    if image_filename:
+        os.makedirs(image_dir, exist_ok=True)
+        image_upload.save(os.path.join(image_dir, image_filename))
+    try:
+        db.execute(
+            "INSERT INTO menu_items (name, category, price, cost_price, is_active, image_filename) "
+            "VALUES (?, ?, ?, ?, 1, ?)",
+            (name, category, price, cost_price, image_filename),
+        )
+        db.commit()
+    except Exception:
+        if image_filename:
+            _remove_product_image(image_dir, image_filename)
+        raise
     log_action(db, session["user_id"], session.get("full_name"), "MENU_ITEM_CREATED",
                f"{name} ({category}) at \u20b1{price:.2f}, cost \u20b1{cost_price:.2f}")
+    flash(f"Product {name} was added successfully.", "success")
     return redirect(url_for("admin.menu"))
 
 
@@ -228,10 +276,129 @@ def menu_remove(item_id):
     item = db.execute("SELECT * FROM menu_items WHERE id = ?", (item_id,)).fetchone()
     if not item:
         abort(404)
-    db.execute("UPDATE menu_items SET is_active = 0 WHERE id = ?", (item_id,))
+    db.execute(
+        "UPDATE menu_items SET is_active = 0, is_archived = 1, archived_at = ? WHERE id = ?",
+        (now_str(), item_id),
+    )
     db.commit()
-    log_action(db, session["user_id"], session.get("full_name"), "MENU_ITEM_REMOVED",
-               f"Removed {item['name']} from the terminal")
+    log_action(db, session["user_id"], session.get("full_name"), "MENU_ITEM_ARCHIVED",
+               f"Archived {item['name']} from the catalog")
+    flash(f"{item['name']} was moved to the Archive.", "success")
+    return redirect(url_for("admin.menu"))
+
+
+@admin_bp.route("/menu/archive")
+@admin_required
+def menu_archive():
+    db = get_db()
+    items = db.execute(
+        "SELECT m.*, (SELECT COUNT(*) FROM transaction_items ti WHERE ti.menu_item_id = m.id) AS sales_count "
+        "FROM menu_items m WHERE m.is_archived = 1 ORDER BY m.archived_at DESC, m.name"
+    ).fetchall()
+    return render_template("admin_archive.html", items=items)
+
+
+@admin_bp.route("/menu/<int:item_id>/restore", methods=["POST"])
+@admin_required
+def menu_restore(item_id):
+    db = get_db()
+    item = db.execute("SELECT * FROM menu_items WHERE id = ? AND is_archived = 1", (item_id,)).fetchone()
+    if not item:
+        abort(404)
+    db.execute(
+        "UPDATE menu_items SET is_archived = 0, archived_at = NULL, is_active = 1 WHERE id = ?",
+        (item_id,),
+    )
+    db.commit()
+    log_action(db, session["user_id"], session.get("full_name"), "MENU_ITEM_RESTORED",
+               f"Restored {item['name']} to the catalog and active menu")
+    flash(f"{item['name']} was restored to the active catalog.", "success")
+    return redirect(url_for("admin.menu_archive"))
+
+
+@admin_bp.route("/menu/<int:item_id>/delete", methods=["POST"])
+@admin_required
+def menu_delete_permanently(item_id):
+    db = get_db()
+    item = db.execute(
+        "SELECT * FROM menu_items WHERE id = ? AND is_archived = 1", (item_id,)
+    ).fetchone()
+    if not item:
+        abort(404)
+    sales_count = db.execute(
+        "SELECT COUNT(*) AS c FROM transaction_items WHERE menu_item_id = ?", (item_id,)
+    ).fetchone()["c"]
+    if sales_count:
+        flash(
+            f"{item['name']} has sales history and cannot be permanently deleted. It remains archived.",
+            "warning",
+        )
+        return redirect(url_for("admin.menu_archive"))
+
+    db.execute("DELETE FROM menu_items WHERE id = ?", (item_id,))
+    db.commit()
+    log_action(db, session["user_id"], session.get("full_name"), "MENU_ITEM_DELETED_PERMANENTLY",
+               f"Permanently deleted unused archived product {item['name']}")
+    _remove_product_image(current_app.config["PRODUCT_IMAGE_DIR"], item["image_filename"])
+    flash(f"{item['name']} was permanently deleted.", "success")
+    return redirect(url_for("admin.menu_archive"))
+
+
+@admin_bp.route("/menu/<int:item_id>/image", methods=["POST"])
+@admin_required
+def menu_image_upload(item_id):
+    """Add or replace a catalog image after checking its actual file signature."""
+    db = get_db()
+    item = db.execute("SELECT * FROM menu_items WHERE id = ?", (item_id,)).fetchone()
+    if not item:
+        abort(404)
+
+    upload = request.files.get("image")
+    if not upload or not upload.filename:
+        return redirect(url_for("admin.menu", image_error="Choose an image file first."))
+    if request.content_length and request.content_length > current_app.config["MAX_CONTENT_LENGTH"]:
+        return redirect(url_for("admin.menu", image_error="Image must be 5 MB or smaller."))
+
+    filename, validation_error = _catalog_image_filename(upload)
+    if validation_error:
+        return redirect(url_for("admin.menu", image_error=validation_error))
+    image_dir = current_app.config["PRODUCT_IMAGE_DIR"]
+    os.makedirs(image_dir, exist_ok=True)
+    upload.save(os.path.join(image_dir, filename))
+    try:
+        db.execute("UPDATE menu_items SET image_filename = ? WHERE id = ?", (filename, item_id))
+        db.commit()
+        log_action(db, session["user_id"], session.get("full_name"), "MENU_IMAGE_UPDATED",
+                   f"Updated product image for {item['name']}")
+    except Exception:
+        try:
+            os.remove(os.path.join(image_dir, filename))
+        except OSError:
+            pass
+        raise
+
+    old_filename = item["image_filename"]
+    if old_filename and old_filename != filename:
+        _remove_product_image(image_dir, old_filename)
+    flash(f"Image for {item['name']} was uploaded successfully.", "success")
+    return redirect(url_for("admin.menu"))
+
+
+@admin_bp.route("/menu/<int:item_id>/image/remove", methods=["POST"])
+@admin_required
+def menu_image_remove(item_id):
+    db = get_db()
+    item = db.execute("SELECT * FROM menu_items WHERE id = ?", (item_id,)).fetchone()
+    if not item:
+        abort(404)
+    filename = item["image_filename"]
+    if filename:
+        db.execute("UPDATE menu_items SET image_filename = NULL WHERE id = ?", (item_id,))
+        db.commit()
+        log_action(db, session["user_id"], session.get("full_name"), "MENU_IMAGE_REMOVED",
+                   f"Removed product image for {item['name']}")
+        _remove_product_image(current_app.config["PRODUCT_IMAGE_DIR"], filename)
+        flash(f"Image for {item['name']} was removed.", "success")
     return redirect(url_for("admin.menu"))
 
 
@@ -393,22 +560,49 @@ def transactions():
 def transactions_export():
     db = get_db()
     today = datetime.now().date()
+    period = request.args.get("period", "all")
+    period_names = {"all": "All time", "week": "This week", "month": "This month", "year": "This year"}
+    if period not in period_names:
+        period = "all"
+    start_date = end_date = None
+    if period == "week":
+        start_date = today - timedelta(days=today.weekday())
+        end_date = today + timedelta(days=1)
+    elif period == "month":
+        start_date = today.replace(day=1)
+        end_date = today + timedelta(days=1)
+    elif period == "year":
+        start_date = today.replace(month=1, day=1)
+        end_date = today + timedelta(days=1)
+
+    date_clause = ""
+    date_params = ()
+    if start_date is not None:
+        date_clause = " AND t.created_at >= ? AND t.created_at < ?"
+        date_params = (
+            start_date.strftime("%Y-%m-%d 00:00:00"),
+            end_date.strftime("%Y-%m-%d 00:00:00"),
+        )
+
     summary = db.execute(
         "SELECT COUNT(*) AS transaction_count, COALESCE(SUM(total), 0) AS revenue "
-        "FROM transactions WHERE status = 'completed' AND is_demo = 0"
+        "FROM transactions t WHERE status = 'completed' AND is_demo = 0" + date_clause,
+        date_params,
     ).fetchone()
     top_products = db.execute(
         "SELECT ti.item_name, SUM(ti.quantity) AS quantity "
         "FROM transaction_items ti JOIN transactions t ON t.id = ti.transaction_id "
-        "WHERE t.status = 'completed' AND t.is_demo = 0 "
-        "GROUP BY ti.item_name ORDER BY quantity DESC, ti.item_name LIMIT 5"
+        "WHERE t.status = 'completed' AND t.is_demo = 0" + date_clause +
+        " GROUP BY ti.item_name ORDER BY quantity DESC, ti.item_name LIMIT 5",
+        date_params,
     ).fetchall()
     transactions = db.execute(
         "SELECT t.*, cashier.full_name AS cashier_name, voider.full_name AS voided_by_name "
         "FROM transactions t "
         "JOIN users cashier ON cashier.id = t.cashier_id "
-        "LEFT JOIN users voider ON voider.id = t.voided_by "
-        "ORDER BY t.created_at DESC, t.id DESC"
+        "LEFT JOIN users voider ON voider.id = t.voided_by WHERE 1=1" + date_clause +
+        " ORDER BY t.created_at DESC, t.id DESC",
+        date_params,
     ).fetchall()
     items = db.execute(
         "SELECT ti.transaction_id, t.created_at, cashier.full_name AS cashier_name, "
@@ -417,13 +611,14 @@ def transactions_export():
         "FROM transaction_items ti "
         "JOIN transactions t ON t.id = ti.transaction_id "
         "JOIN users cashier ON cashier.id = t.cashier_id "
-        "ORDER BY ti.transaction_id DESC, ti.id"
+        "WHERE 1=1" + date_clause + " ORDER BY ti.transaction_id DESC, ti.id",
+        date_params,
     ).fetchall()
     menu_products = db.execute(
         "SELECT id, name, category, price, cost_price, is_active "
         "FROM menu_items ORDER BY "
         "CASE category WHEN 'Coffee Drinks' THEN 1 WHEN 'Freshie Drinks' THEN 2 "
-        "WHEN 'Food' THEN 3 WHEN 'Pastry' THEN 4 ELSE 5 END, name"
+        "WHEN 'Meals' THEN 3 WHEN 'Pastry' THEN 4 ELSE 5 END, name"
     ).fetchall()
     items_by_transaction = {}
     for item in items:
@@ -443,7 +638,7 @@ def transactions_export():
     dashboard.row_dimensions[1].height = 36
     dashboard.merge_cells("A2:N2")
     dashboard["A2"] = (
-        f"All-time summary excludes demo and voided sales; transaction chart shows every recorded sale "
+        f"{period_names[period]}; summary excludes demo and voided sales, transaction chart shows all statuses "
         f"| Generated {today:%B %d, %Y}"
     )
     dashboard["A2"].font = Font(italic=True, color="6B5B53")
@@ -590,6 +785,13 @@ def transactions_export():
             vertical="top", wrap_text=True
         )
 
+    # Keep the export focused on transaction data; these sheets only support
+    # the optional overview and catalog tabs requested to be removed.
+    for sheet_name in ("Dashboard", "Chart Data", "Menu Products"):
+        if sheet_name in workbook.sheetnames:
+            workbook.remove(workbook[sheet_name])
+    workbook.active = workbook.sheetnames.index("Transactions")
+
     output = BytesIO()
     workbook.save(output)
     output.seek(0)
@@ -597,5 +799,5 @@ def transactions_export():
         output,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         as_attachment=True,
-        download_name=f"cafe-sales-{datetime.now():%Y-%m-%d}.xlsx",
+        download_name=f"cafe-sales-{period}-{datetime.now():%Y-%m-%d}.xlsx",
     )

@@ -5,7 +5,12 @@
 <div class="page-head">
   <h1>All Transactions</h1>
   <p>Most recent 100 sales, including voided ones. Voided sales are never erased &mdash; only marked.</p>
-  <a class="btn btn-primary" href="{{ url_for('admin.transactions_export') }}">Export all sales to Excel</a>
+  <div class="export-actions" aria-label="Export transactions to Excel">
+    <a class="btn btn-primary" href="{{ url_for('admin.transactions_export', period='week') }}">Export this week</a>
+    <a class="btn btn-primary" href="{{ url_for('admin.transactions_export', period='month') }}">Export this month</a>
+    <a class="btn btn-primary" href="{{ url_for('admin.transactions_export', period='year') }}">Export this year</a>
+    <a class="btn" href="{{ url_for('admin.transactions_export', period='all') }}">Export all sales</a>
+  </div>
 </div>
 
 <div class="card">

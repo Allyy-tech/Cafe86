@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}Cafe86{% endblock %}</title>
+<title>{% block title %}CAFE86{% endblock %}</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
@@ -11,7 +11,8 @@
 {% if current_user.get('user_id') %}
 <div class="topbar">
   <a class="brand" href="{{ url_for('auth.landing') }}">
-    <span class="brand-mark">&#9749;</span> Cafe86
+    <img class="brand-logo" src="{{ url_for('static', filename='img/cafe86-logo.jpg') }}" alt="Cafe86 logo">
+    <span>Cafe86</span>
   </a>
 
   <nav class="topnav">
@@ -20,6 +21,7 @@
     {% if current_user.get('role') == 'admin' %}
       <a href="{{ url_for('admin.dashboard') }}" class="{{ 'active' if request.endpoint == 'admin.dashboard' }}">Dashboard</a>
       <a href="{{ url_for('admin.menu') }}" class="{{ 'active' if request.endpoint == 'admin.menu' }}">Catalog Management</a>
+      <a href="{{ url_for('admin.menu_archive') }}" class="{{ 'active' if request.endpoint == 'admin.menu_archive' }}">Archive</a>
       <a href="{{ url_for('admin.users') }}" class="{{ 'active' if request.endpoint == 'admin.users' }}">Account Management</a>
       <a href="{{ url_for('admin.audit_log') }}" class="{{ 'active' if request.endpoint == 'admin.audit_log' }}">Audit Log</a>
     {% endif %}

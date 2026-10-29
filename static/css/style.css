@@ -65,6 +65,8 @@ a { color: var(--roast); }
   white-space: nowrap;
 }
 
+.brand-logo { width: 48px; height: 48px; border-radius: 5px; object-fit: contain; background: #fff; }
+
 .brand-mark {
   width: 26px; height: 26px;
   border-radius: 7px;
@@ -295,6 +297,12 @@ tbody tr:hover { background: var(--paper); }
 .item-btn:hover { border-color: var(--crema); transform: translateY(-1px); }
 .item-btn:active { transform: translateY(0); }
 .product-image { display: block; width: 100%; height: 112px; object-fit: cover; border-radius: 8px; background: var(--paper); }
+.category-filter { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; }
+.filter-btn { border: 1px solid var(--line); border-radius: 999px; padding: 8px 15px; background: var(--paper); color: var(--ink); cursor: pointer; font: inherit; font-size: 13px; font-weight: 600; transition: background .15s ease, color .15s ease, border-color .15s ease; }
+.filter-btn:hover { border-color: var(--roast); }
+.filter-btn.active { background: var(--roast); border-color: var(--roast); color: #fff; }
+[data-filter-section][hidden] { display: none !important; }
+.export-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .product-copy { display: block; padding: 10px 3px 3px; }
 .item-btn .nm { font-weight: 600; font-size: 14px; display: block; line-height: 1.3; min-height: 36px; }
 .item-btn .pr { color: var(--ok); font-weight: 700; font-size: 15px; margin-top: 6px; display: block; font-variant-numeric: tabular-nums; }
@@ -430,6 +438,7 @@ tbody tr:hover { background: var(--paper); }
   box-shadow: 0 8px 20px rgba(74,50,38,.2);
 }
 .login-brand-mark-small { width: 48px; height: 48px; font-size: 24px; margin-bottom: 14px; }
+.login-logo { display: block; width: 132px; height: 132px; object-fit: contain; margin: 0 auto 14px; }
 .login-eyebrow {
   margin: 0 0 8px;
   color: var(--crema);
@@ -511,15 +520,21 @@ tbody tr:hover { background: var(--paper); }
 }
 .catalog-item:last-child { border-bottom: 0; }
 .catalog-item-name { display: grid; gap: 3px; }
-.catalog-controls { display: grid; grid-template-columns: minmax(0, 1fr) 86px; gap: 9px; align-items: end; }
-.catalog-item-form { display: grid; grid-template-columns: minmax(90px, 1fr) minmax(90px, 1fr) 82px 62px 66px; align-items: end; gap: 9px; }
+.catalog-image-preview, .catalog-image-placeholder { width: 92px; height: 72px; border-radius: 8px; object-fit: cover; background: var(--paper-edge); }
+.catalog-image-placeholder { display: grid; place-items: center; color: var(--ink-soft); font-size: 11px; }
+.catalog-image-form { display: grid; gap: 5px; margin-top: 5px; }
+.catalog-image-form input[type=file] { max-width: 100%; font-size: 11px; }
+.archive-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.catalog-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, 205px); gap: 9px; align-items: end; }
+.catalog-item-form { display: grid; grid-template-columns: minmax(90px, 1fr) minmax(90px, 1fr) 82px 62px; align-items: end; gap: 9px; }
 .catalog-item-form label { font-size: 11px; margin-bottom: 3px; }
 .catalog-item-form input[type=number] { padding: 7px; }
 .catalog-margin { align-self: center; color: var(--ink-soft); font-size: 12px; white-space: nowrap; }
 .catalog-item .checkline { align-self: center; }
-.catalog-controls > form:last-child,
-.catalog-controls > .pill { align-self: end; justify-self: stretch; }
-.catalog-controls > form:last-child .btn { width: 100%; }
+.catalog-item-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; }
+.catalog-item-actions > form { margin: 0; }
+.catalog-item-actions .btn { width: 100%; }
+.catalog-item-actions > .pill { grid-column: 1 / -1; justify-self: center; }
 
 /* ---------------------------------------------------------- charts */
 
@@ -608,8 +623,7 @@ tbody tr:hover { background: var(--paper); }
   .catalog-controls { grid-template-columns: 1fr; }
   .catalog-item-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .catalog-margin { align-self: center; }
-  .catalog-controls > form:last-child,
-  .catalog-controls > .pill { justify-self: start; }
+  .catalog-item-actions { grid-template-columns: 1fr 1fr; }
   .gcash-section { align-items: flex-start; }
   .gcash-section img { width: 92px; height: 92px; }
   .product-image { height: 96px; }

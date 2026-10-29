@@ -1,5 +1,6 @@
 # Database (contains real transactions / password hashes once you start using it for real)
 instance/*.db
+instance/product_images/
 private/
 .env
 

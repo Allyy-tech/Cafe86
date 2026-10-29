@@ -15,7 +15,8 @@ Two secure-coding practices are load-bearing in this file:
 import os
 
 from flask import (
-    Blueprint, abort, current_app, jsonify, render_template, request, send_file, session,
+    Blueprint, abort, current_app, jsonify, render_template, request, send_file,
+    send_from_directory, session,
 )
 from werkzeug.security import check_password_hash
 
@@ -29,7 +30,7 @@ pos_bp = Blueprint("pos", __name__)
 
 VALID_PAYMENT_METHODS = ("cash", "ewallet")
 VALID_SERVICE_TYPES = ("dine_in", "takeout")
-MENU_CATEGORIES = ("Coffee Drinks", "Freshie Drinks", "Food", "Pastry")
+MENU_CATEGORIES = ("Coffee Drinks", "Freshie Drinks", "Meals", "Pastry")
 
 
 @pos_bp.route("/")
@@ -39,7 +40,7 @@ def terminal():
     items = db.execute(
         "SELECT * FROM menu_items WHERE is_active = 1 ORDER BY "
         "CASE category WHEN 'Coffee Drinks' THEN 1 WHEN 'Freshie Drinks' THEN 2 "
-        "WHEN 'Food' THEN 3 WHEN 'Pastry' THEN 4 ELSE 5 END, name"
+        "WHEN 'Meals' THEN 3 WHEN 'Pastry' THEN 4 ELSE 5 END, name"
     ).fetchall()
     return render_template("pos_terminal.html", items=items, categories=MENU_CATEGORIES)
 
@@ -53,6 +54,13 @@ def merchant_qr():
     if not os.path.isfile(qr_path):
         abort(404)
     return send_file(qr_path, mimetype="image/jpeg", max_age=0)
+
+
+@pos_bp.route("/product-image/<path:image_filename>")
+@login_required
+def product_image(image_filename):
+    """Serve catalog images only to signed-in staff and admins."""
+    return send_from_directory(current_app.config["PRODUCT_IMAGE_DIR"], image_filename)
 
 
 @pos_bp.route("/checkout", methods=["POST"])

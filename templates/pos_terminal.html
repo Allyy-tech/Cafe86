@@ -10,20 +10,31 @@
       <p>Choose a product to add it to the order.</p>
     </div>
 
+    <div class="category-filter" role="group" aria-label="Filter menu by category">
+      <button class="filter-btn active" type="button" data-category-filter="all" aria-pressed="true">All</button>
+      {% for category in categories %}
+        {% if items | selectattr('category', 'equalto', category) | list %}
+        <button class="filter-btn" type="button" data-category-filter="{{ category }}" aria-pressed="false">{{ category }}</button>
+        {% endif %}
+      {% endfor %}
+    </div>
+
     {% for category in categories %}
       {% set group = items | selectattr('category', 'equalto', category) | list %}
       {% if group %}
-      <section class="menu-section">
+      <section class="menu-section" data-filter-section="{{ category }}">
         <div class="cat-title">{{ category }}</div>
         <div class="item-grid">
         {% for item in group %}
         <button class="item-btn" type="button"
                 data-id="{{ item.id }}" data-name="{{ item.name }}" data-price="{{ item.price }}">
-          {% if item.category == 'Coffee Drinks' %}
+          {% if item.image_filename %}
+          <img class="product-image" src="{{ url_for('pos.product_image', image_filename=item.image_filename) }}" alt="{{ item.name }}" loading="lazy">
+          {% elif item.category == 'Coffee Drinks' %}
           <img class="product-image" src="{{ url_for('static', filename='img/coffee-drink.svg') }}" alt="" loading="lazy">
           {% elif item.category == 'Freshie Drinks' %}
           <img class="product-image" src="{{ url_for('static', filename='img/freshie-drink.svg') }}" alt="" loading="lazy">
-          {% elif item.category == 'Food' %}
+          {% elif item.category == 'Meals' %}
           <img class="product-image" src="{{ url_for('static', filename='img/food.svg') }}" alt="" loading="lazy">
           {% else %}
           <img class="product-image" src="{{ url_for('static', filename='img/pastry.svg') }}" alt="" loading="lazy">
@@ -120,5 +131,6 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/category-filter.js') }}"></script>
 <script src="{{ url_for('static', filename='js/terminal.js') }}"></script>
 {% endblock %}

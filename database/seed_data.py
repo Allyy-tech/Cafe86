@@ -26,9 +26,9 @@ MENU_ITEMS = [
     ("Blueberry Muffin",      "Pastry",   75,  30.00),
     ("Chocolate Chip Cookie", "Pastry",   50,  15.00),
     ("Cheesecake Slice",      "Pastry",   95,  42.00),
-    ("Ham & Cheese Sandwich", "Food",     95,  38.00),
-    ("Tuna Sandwich",         "Food",     90,  36.00),
-    ("Caesar Salad",          "Food",    120,  52.00),
+    ("Ham & Cheese Sandwich", "Meals", 95,  38.00),
+    ("Tuna Sandwich",         "Meals", 90,  36.00),
+    ("Caesar Salad",          "Meals", 120,  52.00),
     ("Bottled Water",         "Freshie Drinks",   30,  12.00),
     ("Iced Tea",              "Freshie Drinks",   55,  18.00),
 ]

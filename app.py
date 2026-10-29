@@ -22,7 +22,8 @@ def create_app():
     app.config.from_object(Config)
     app.permanent_session_lifetime = timedelta(seconds=app.config["PERMANENT_SESSION_LIFETIME"])
 
-    os.makedirs(os.path.dirname(app.config["DATABASE_PATH"]), exist_ok=True)
+    if not app.config.get("MONGODB_URI"):
+        os.makedirs(os.path.dirname(app.config["DATABASE_PATH"]), exist_ok=True)
 
     database.init_app(app)
 

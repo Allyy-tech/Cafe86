@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Product Archive{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>Product Archive</h1>
+  <p>Archived products are hidden from Catalog Management and the cashier menu. Restore a product to make it active again.</p>
+</div>
+
+{% for category, message in get_flashed_messages(with_categories=true) %}
+  {% set alert_class = 'alert-ok' if category == 'success' else 'alert-warn' if category == 'warning' else 'alert-error' %}
+  <div class="alert {{ alert_class }}" role="status">{{ message }}</div>
+{% endfor %}
+
+<div class="card">
+  {% if items %}
+  <table>
+    <thead>
+      <tr><th>Product</th><th>Category</th><th class="num">Price</th><th>Archived</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td>{{ item.name }}</td>
+        <td>{{ item.category }}</td>
+        <td class="num mono">&#8369;{{ '%.2f'|format(item.price) }}</td>
+        <td class="small">{{ item.archived_at or '—' }}</td>
+        <td class="archive-actions">
+          <form method="post" action="{{ url_for('admin.menu_restore', item_id=item.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm btn-primary" type="submit">Restore</button>
+          </form>
+          {% if item.sales_count == 0 %}
+          <form method="post" action="{{ url_for('admin.menu_delete_permanently', item_id=item.id) }}" class="permanent-delete-form" data-product-name="{{ item.name }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm btn-danger" type="submit">Delete permanently</button>
+          </form>
+          {% else %}
+          <span class="small muted" title="Historical sales reference this product.">Kept for sales history</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">No archived products. Products you archive will appear here.</div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/catalog-confirm.js') }}"></script>
+{% endblock %}

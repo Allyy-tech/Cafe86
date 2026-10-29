@@ -22,8 +22,8 @@ class Config:
     APP_ENV = os.environ.get("APP_ENV", "development")
     if APP_ENV == "production" and not os.environ.get("SECRET_KEY"):
         raise RuntimeError("SECRET_KEY must be set when APP_ENV=production.")
-    if APP_ENV == "production" and not os.environ.get("DATABASE_PATH"):
-        raise RuntimeError("DATABASE_PATH must point to persistent storage in production.")
+    if APP_ENV == "production" and not os.environ.get("DATABASE_PATH") and not os.environ.get("MONGODB_URI"):
+        raise RuntimeError("Set DATABASE_PATH or MONGODB_URI for persistent storage in production.")
     if APP_ENV == "production" and not os.environ.get("ADMIN_SETUP_TOKEN"):
         raise RuntimeError("ADMIN_SETUP_TOKEN must be set for protected first-admin setup.")
 
@@ -32,6 +32,10 @@ class Config:
     DATABASE_PATH = os.environ.get(
         "DATABASE_PATH", os.path.join(BASE_DIR, "instance", "cafe.db")
     )
+    MONGODB_URI = os.environ.get("MONGODB_URI")
+    MONGODB_DATABASE = os.environ.get("MONGODB_DATABASE", "cafe_pos")
+    PRODUCT_IMAGE_DIR = os.path.join(BASE_DIR, "instance", "product_images")
+    MAX_CONTENT_LENGTH = 5 * 1024 * 1024
     SCHEMA_PATH = os.path.join(BASE_DIR, "database", "schema.sql")
     SEED_DEMO_USERS = os.environ.get("SEED_DEMO_USERS", "1") == "1"
     PUBLIC_DEMO = os.environ.get("PUBLIC_DEMO", "0") == "1"

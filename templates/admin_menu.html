@@ -13,10 +13,16 @@
   <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
 </div>
 {% endif %}
+{% if image_error %}
+<div class="alert alert-error" role="alert">{{ image_error }}</div>
+{% endif %}
+{% for category, message in get_flashed_messages(with_categories=true) %}
+  {% if category == 'success' %}<div class="alert alert-ok" role="status">{{ message }}</div>{% endif %}
+{% endfor %}
 
 <div class="card catalog-create">
   <h2>Add Product</h2>
-  <form method="post" action="{{ url_for('admin.menu_create') }}">
+  <form id="catalog-create-form" method="post" action="{{ url_for('admin.menu_create') }}" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="catalog-create-grid">
       <div class="field">
@@ -37,16 +43,29 @@
         <label for="cost_price">Cost to make</label>
         <input type="number" id="cost_price" name="cost_price" step="0.01" min="0.01" required placeholder="0.00">
       </div>
+      <div class="field">
+        <label for="new-product-image">Product image (optional)</label>
+        <input type="file" id="new-product-image" name="image" accept="image/png,image/jpeg,image/webp">
+      </div>
     </div>
     <button class="btn btn-primary" type="submit">Add Product</button>
   </form>
+</div>
+
+<div class="category-filter" role="group" aria-label="Filter catalog by category">
+  <button class="filter-btn active" type="button" data-category-filter="all" aria-pressed="true">All</button>
+  {% for category in categories %}
+    {% if items | selectattr('category', 'equalto', category) | list %}
+    <button class="filter-btn" type="button" data-category-filter="{{ category }}" aria-pressed="false">{{ category }}</button>
+    {% endif %}
+  {% endfor %}
 </div>
 
 <div class="catalog-groups">
   {% for category in categories %}
   {% set group = items | selectattr('category', 'equalto', category) | list %}
   {% if group %}
-  <section class="card catalog-group">
+  <section class="card catalog-group" data-filter-section="{{ category }}">
     <div class="catalog-group-head">
       <div>
         <p class="login-eyebrow">PRODUCT SECTION</p>
@@ -59,11 +78,28 @@
       {% for item in group %}
       <article class="catalog-item {{ 'dimmed' if not item.is_active }}">
         <div class="catalog-item-name">
+          {% if item.image_filename %}
+          <img class="catalog-image-preview" src="{{ url_for('pos.product_image', image_filename=item.image_filename) }}" alt="{{ item.name }}">
+          {% else %}
+          <div class="catalog-image-placeholder" aria-hidden="true">No image</div>
+          {% endif %}
           <strong>{{ item.name }}</strong>
           <span class="small muted">{{ 'Active on Menu' if item.is_active else 'Hidden from Menu' }}</span>
+          <form method="post" action="{{ url_for('admin.menu_image_upload', item_id=item.id) }}" enctype="multipart/form-data" class="catalog-image-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label class="small" for="image{{ item.id }}">Product image</label>
+            <input type="file" id="image{{ item.id }}" name="image" accept="image/png,image/jpeg,image/webp" required>
+            <button class="btn btn-sm" type="submit">{{ 'Replace image' if item.image_filename else 'Add image' }}</button>
+          </form>
+          {% if item.image_filename %}
+          <form method="post" action="{{ url_for('admin.menu_image_remove', item_id=item.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm" type="submit">Remove image</button>
+          </form>
+          {% endif %}
         </div>
         <div class="catalog-controls">
-          <form method="post" action="{{ url_for('admin.menu_update') }}" class="catalog-item-form">
+          <form id="product-update{{ item.id }}" method="post" action="{{ url_for('admin.menu_update') }}" class="catalog-item-form">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="item_id" value="{{ item.id }}">
             <div>
@@ -81,16 +117,17 @@
               <input type="checkbox" name="is_active" id="active{{ item.id }}" {{ 'checked' if item.is_active }}>
               <label for="active{{ item.id }}">Show</label>
             </span>
-            <button class="btn btn-sm btn-primary" type="submit">Save</button>
           </form>
-          {% if item.is_active %}
-          <form method="post" action="{{ url_for('admin.menu_remove', item_id=item.id) }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="btn btn-sm btn-danger" type="submit">Remove</button>
-          </form>
-          {% else %}
-          <span class="pill pill-bad">OFF MENU</span>
-          {% endif %}
+          <div class="catalog-item-actions">
+            <button class="btn btn-sm btn-primary" type="submit" form="product-update{{ item.id }}">Save</button>
+            <form method="post" action="{{ url_for('admin.menu_remove', item_id=item.id) }}" class="archive-product-form" data-product-name="{{ item.name }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-danger" type="submit">Archive</button>
+            </form>
+            {% if not item.is_active %}
+            <span class="pill pill-bad">OFF MENU</span>
+            {% endif %}
+          </div>
         </div>
       </article>
       {% endfor %}
@@ -101,6 +138,11 @@
 </div>
 
 <p class="small muted">
-  Removing a product hides it from the Menu page but keeps past receipts intact.
+  Archived products leave the catalog and cashier menu, but their records and past sales stay preserved. Restore products from the <a href="{{ url_for('admin.menu_archive') }}">Archive</a> tab.
 </p>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/category-filter.js') }}"></script>
+<script src="{{ url_for('static', filename='js/catalog-confirm.js') }}"></script>
 {% endblock %}

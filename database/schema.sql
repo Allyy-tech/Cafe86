@@ -44,7 +44,10 @@ CREATE TABLE IF NOT EXISTS menu_items (
     category    TEXT NOT NULL,
     price       REAL NOT NULL,
     cost_price  REAL NOT NULL DEFAULT 0,
-    is_active   INTEGER NOT NULL DEFAULT 1
+    is_active   INTEGER NOT NULL DEFAULT 1,
+    image_filename TEXT,
+    is_archived INTEGER NOT NULL DEFAULT 0,
+    archived_at TEXT
 );
 
 -- One row per sale.
