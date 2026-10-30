@@ -6,10 +6,10 @@
   <h1>All Transactions</h1>
   <p>Most recent 100 sales, including voided ones. Voided sales are never erased &mdash; only marked.</p>
   <div class="export-actions" aria-label="Export transactions to Excel">
-    <a class="btn btn-primary" href="{{ url_for('admin.transactions_export', period='week') }}">Export this week</a>
-    <a class="btn btn-primary" href="{{ url_for('admin.transactions_export', period='month') }}">Export this month</a>
-    <a class="btn btn-primary" href="{{ url_for('admin.transactions_export', period='year') }}">Export this year</a>
-    <a class="btn" href="{{ url_for('admin.transactions_export', period='all') }}">Export all sales</a>
+    <a class="btn btn-primary export-confirm" data-export-period="this week" href="{{ url_for('admin.transactions_export', period='week') }}">Export this week</a>
+    <a class="btn btn-primary export-confirm" data-export-period="this month" href="{{ url_for('admin.transactions_export', period='month') }}">Export this month</a>
+    <a class="btn btn-primary export-confirm" data-export-period="this year" href="{{ url_for('admin.transactions_export', period='year') }}">Export this year</a>
+    <a class="btn export-confirm" data-export-period="all sales" href="{{ url_for('admin.transactions_export', period='all') }}">Export all sales</a>
   </div>
 </div>
 
@@ -50,4 +50,8 @@
   {% endif %}
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/export-confirm.js') }}"></script>
 {% endblock %}

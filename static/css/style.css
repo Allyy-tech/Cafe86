@@ -729,6 +729,7 @@ body.menu-background .item-btn[data-product-description]:focus-visible::after {
   max-width: 370px;
   margin: 0 auto;
   background: #fff;
+  color: var(--ink);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 26px;

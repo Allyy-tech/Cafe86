@@ -28,8 +28,6 @@ records without a separate security and operational review.
 - Products can be archived from Catalog Management. Archived items leave the
   working catalog and cashier menu while their records, images, and past
   sales stay preserved. Admins can restore them from the **Archive** tab.
-  Permanently deleting an archived product requires confirmation and is only
-  allowed when no transaction line items refer to it, preserving sales history.
 - **A first-run owner setup** creates the first admin. After an admin exists,
   that setup route closes; further accounts require an administrator.
 - **Password recovery** sends an expiring one-time code to an admin's email
@@ -223,10 +221,23 @@ If you need admin password reset emails, configure `GMAIL_ADDRESS` and
 `GMAIL_APP_PASSWORD` as private environment variables. Do not put account
 passwords or app passwords in the project files.
 
-## Tests
+## Tests and Run
 
 ```powershell
 .\.venv\Scripts\python.exe tests\test_security.py
-```
+.\.venv\Scripts\python.exe app.py
+
+## Setup Gmail_Password
+$env:GMAIL_ADDRESS = "youraddress@gmail.com"
+$env:GMAIL_APP_PASSWORD = "your16characterapppassword"
+.\.venv\Scripts\python.exe app.py
+
+## Push GitHub
+# 1. Stage all your new changes
+git add .
+# 2. Save the changes with a short message describing what you updated
+git commit -m "Updated system files"
+# 3. Push the updates live to GitHub
+git push
 
 The tests use temporary databases and do not change the local cafe database.
